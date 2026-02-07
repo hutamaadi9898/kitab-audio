@@ -1,0 +1,212 @@
+---
+interface Props {
+    currentPath?: string;
+}
+
+const { currentPath = "/" } = Astro.props;
+---
+
+<header
+    class="fixed top-0 left-0 right-0 z-50 transition-all duration-300"
+    id="main-header"
+>
+    <div
+        class="absolute inset-0 bg-ink/80 backdrop-blur-xl border-b border-white/[0.05] transition-all duration-300"
+        id="header-bg"
+    >
+    </div>
+    <nav class="relative mx-auto max-w-7xl px-6 py-4">
+        <div class="flex items-center justify-between">
+            <!-- Logo -->
+            <a
+                href="/"
+                class="flex items-center gap-3 group"
+                aria-label="Audio Gear Atlas Home"
+            >
+                <div class="relative">
+                    <div
+                        class="w-8 h-8 rounded-lg bg-gradient-to-br from-limelight to-limelight-dim flex items-center justify-center transition-transform duration-300 group-hover:scale-110 group-hover:rotate-3"
+                    >
+                        <svg
+                            class="w-4 h-4 text-ink"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="2.5"
+                            aria-hidden="true"
+                        >
+                            <path
+                                d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"
+                                stroke-linecap="round"
+                                stroke-linejoin="round"></path>
+                        </svg>
+                    </div>
+                </div>
+                <span
+                    class="text-lg font-semibold tracking-tight group-hover:text-limelight transition-colors duration-200"
+                >
+                    Audio Gear Atlas
+                </span>
+            </a>
+
+            <!-- Desktop Navigation -->
+            <div class="hidden md:flex items-center gap-6">
+                <a
+                    href="/"
+                    class:list={[
+                        "relative text-sm font-medium transition-colors py-1",
+                        currentPath === "/"
+                            ? "text-limelight"
+                            : "text-white/60 hover:text-white",
+                    ]}
+                >
+                    <span>Atlas</span>
+                    {
+                        currentPath === "/" && (
+                            <span class="absolute -bottom-1 left-0 right-0 h-0.5 bg-limelight rounded-full" />
+                        )
+                    }
+                </a>
+                <span class="text-white/20">|</span>
+                <span
+                    class="text-xs font-medium text-white/40 tracking-wider uppercase"
+                    >2026 Edition</span
+                >
+            </div>
+
+            <!-- Mobile Menu Button -->
+            <button
+                type="button"
+                class="md:hidden relative w-10 h-10 flex items-center justify-center rounded-xl hover:bg-white/5 transition-colors"
+                id="mobile-menu-btn"
+                aria-label="Toggle navigation menu"
+                aria-expanded="false"
+            >
+                <div
+                    class="w-5 h-4 flex flex-col justify-between"
+                    id="hamburger-icon"
+                >
+                    <span
+                        class="w-full h-0.5 bg-white/70 rounded-full transition-all duration-300 origin-center"
+                        id="bar-1"></span>
+                    <span
+                        class="w-full h-0.5 bg-white/70 rounded-full transition-all duration-300"
+                        id="bar-2"></span>
+                    <span
+                        class="w-full h-0.5 bg-white/70 rounded-full transition-all duration-300 origin-center"
+                        id="bar-3"></span>
+                </div>
+            </button>
+        </div>
+
+        <!-- Mobile Menu -->
+        <div
+            class="md:hidden overflow-hidden transition-all duration-300 ease-out"
+            id="mobile-menu"
+            style="max-height: 0; opacity: 0;"
+        >
+            <div class="py-4 space-y-2 border-t border-white/[0.05] mt-4">
+                <a
+                    href="/"
+                    class:list={[
+                        "flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200",
+                        currentPath === "/"
+                            ? "bg-limelight/10 text-limelight"
+                            : "text-white/60 hover:text-white hover:bg-white/5",
+                    ]}
+                >
+                    <svg
+                        class="w-4 h-4"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        aria-hidden="true"
+                    >
+                        <path
+                            d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"></path>
+                        <polyline
+                            points="9,22 9,12 15,12 15,22"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"></polyline>
+                    </svg>
+                    Atlas
+                </a>
+                <div
+                    class="px-3 py-2 text-xs font-medium text-white/30 tracking-wider uppercase"
+                >
+                    2026 Edition
+                </div>
+            </div>
+        </div>
+    </nav>
+</header>
+
+<!-- Skip to Content Link (Accessibility) -->
+<a
+    href="#main-content"
+    class="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-[100] focus:bg-limelight focus:text-ink focus:px-4 focus:py-2 focus:rounded-xl focus:font-medium focus:shadow-lg"
+>
+    Skip to main content
+</a>
+
+<script>
+    // Mobile menu toggle
+    const menuBtn = document.getElementById("mobile-menu-btn");
+    const mobileMenu = document.getElementById("mobile-menu");
+    const bar1 = document.getElementById("bar-1");
+    const bar2 = document.getElementById("bar-2");
+    const bar3 = document.getElementById("bar-3");
+
+    let isOpen = false;
+
+    menuBtn?.addEventListener("click", () => {
+        isOpen = !isOpen;
+        menuBtn.setAttribute("aria-expanded", isOpen.toString());
+
+        if (isOpen) {
+            if (mobileMenu) {
+                mobileMenu.style.maxHeight = "200px";
+                mobileMenu.style.opacity = "1";
+            }
+            // Animate to X
+            if (bar1) {
+                bar1.style.transform = "translateY(7px) rotate(45deg)";
+            }
+            if (bar2) {
+                bar2.style.opacity = "0";
+            }
+            if (bar3) {
+                bar3.style.transform = "translateY(-7px) rotate(-45deg)";
+            }
+        } else {
+            if (mobileMenu) {
+                mobileMenu.style.maxHeight = "0";
+                mobileMenu.style.opacity = "0";
+            }
+            // Animate back to hamburger
+            if (bar1) {
+                bar1.style.transform = "translateY(0) rotate(0)";
+            }
+            if (bar2) {
+                bar2.style.opacity = "1";
+            }
+            if (bar3) {
+                bar3.style.transform = "translateY(0) rotate(0)";
+            }
+        }
+    });
+
+    // Scroll-aware header shadow
+    const headerBg = document.getElementById("header-bg");
+
+    window.addEventListener("scroll", () => {
+        if (window.scrollY > 20) {
+            headerBg?.classList.add("shadow-lg", "bg-ink/95");
+        } else {
+            headerBg?.classList.remove("shadow-lg", "bg-ink/95");
+        }
+    });
+</script>

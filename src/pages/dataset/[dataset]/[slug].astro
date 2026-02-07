@@ -1,0 +1,329 @@
+---
+import Layout from "../../../layouts/Layout.astro";
+import { getDatasetMeta, getDatasetRowBySlug } from "../../../lib/datasets";
+
+export const prerender = false;
+
+const { dataset: datasetKey, slug } = Astro.params;
+const db = Astro.locals.runtime.env.TWS_DB;
+const datasets = await getDatasetMeta(db);
+const dataset = datasets.find((entry) => entry.key === datasetKey);
+
+if (!dataset) {
+  return new Response("Not found", { status: 404 });
+}
+
+const row = slug ? await getDatasetRowBySlug(db, dataset, slug) : undefined;
+
+if (!row) {
+  return new Response("Not found", { status: 404 });
+}
+
+const primaryKey = dataset.primaryColumn ?? dataset.columns[0]?.key ?? "";
+const priceKey = dataset.priceColumn ?? "";
+
+const formatValue = (value: string | number | null | undefined): string =>
+  value === null || value === undefined || value === "" ? "—" : String(value);
+
+const parseNumeric = (
+  value: string | number | null | undefined,
+): number | null => {
+  if (value === null || value === undefined || value === "") return null;
+  if (typeof value === "number") return Number.isFinite(value) ? value : null;
+  const normalized = String(value)
+    .replace(/,/g, "")
+    .replace(/[^0-9.-]/g, "");
+  const numberValue = Number(normalized);
+  return Number.isFinite(numberValue) ? numberValue : null;
+};
+
+const formatPrice = (value: string | number | null | undefined): string => {
+  const numeric = parseNumeric(value);
+  if (numeric === null) return formatValue(value);
+  return `Rp ${new Intl.NumberFormat("id-ID", { maximumFractionDigits: 0 }).format(numeric)}`;
+};
+
+const isBadgeKey = (key: string): boolean =>
+  key === "price_performance" ||
+  ["tier", "rank", "value"].some((token) => key.includes(token));
+
+const highlightKey = dataset.columns.find((column) =>
+  ["review", "notes", "fitur", "soundtest"].some((token) =>
+    column.key.includes(token),
+  ),
+)?.key;
+
+const badges = dataset.columns
+  .filter((column) => isBadgeKey(column.key))
+  .slice(0, 3);
+const primaryValue = formatValue(row[primaryKey]);
+const priceValue = priceKey ? formatPrice(row[priceKey]) : "—";
+const highlight = highlightKey ? formatValue(row[highlightKey]) : "";
+
+// Group columns into categories for better organization
+const specColumns = dataset.columns.filter(
+  (col) =>
+    !isBadgeKey(col.key) && col.key !== highlightKey && col.key !== primaryKey,
+);
+---
+
+<Layout
+  title={`${primaryValue} · ${dataset.label}`}
+  description={highlight || primaryValue}
+>
+  <main class="px-4 pb-12 md:px-8">
+    <div class="mx-auto max-w-6xl space-y-8">
+      <!-- Breadcrumb Navigation -->
+      <nav class="pt-4" aria-label="Breadcrumb">
+        <ol
+          class="flex items-center gap-2 text-sm"
+          itemscope
+          itemtype="https://schema.org/BreadcrumbList"
+        >
+          <li
+            itemprop="itemListElement"
+            itemscope
+            itemtype="https://schema.org/ListItem"
+          >
+            <a
+              href={`/?tab=${dataset.key}`}
+              class="inline-flex items-center gap-1.5 text-white/40 hover:text-limelight transition-colors duration-200 group"
+              itemprop="item"
+            >
+              <svg
+                class="w-4 h-4 group-hover:-translate-x-0.5 transition-transform duration-200"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                aria-hidden="true"
+              >
+                <path
+                  d="M19 12H5M12 19l-7-7 7-7"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"></path>
+              </svg>
+              <span itemprop="name">{dataset.label}</span>
+            </a>
+            <meta itemprop="position" content="1" />
+          </li>
+          <li class="text-white/20" aria-hidden="true">/</li>
+          <li
+            itemprop="itemListElement"
+            itemscope
+            itemtype="https://schema.org/ListItem"
+          >
+            <span class="text-white/60 font-medium" itemprop="name"
+              >{primaryValue}</span
+            >
+            <meta itemprop="position" content="2" />
+          </li>
+        </ol>
+      </nav>
+
+      <!-- Hero Section -->
+      <section class="glass-panel relative overflow-hidden p-6 md:p-10">
+        <!-- Background accents -->
+        <div
+          class="absolute top-0 right-0 w-1/2 h-full bg-gradient-to-l from-limelight/[0.03] to-transparent pointer-events-none"
+        >
+        </div>
+        <div
+          class="absolute -bottom-20 -left-20 w-60 h-60 bg-limelight/[0.03] rounded-full blur-[80px] pointer-events-none"
+        >
+        </div>
+
+        <div
+          class="relative z-10 grid gap-8 lg:grid-cols-[1.2fr_0.8fr] lg:gap-12"
+        >
+          <div class="space-y-6">
+            <!-- Category & Badge Pills -->
+            <div class="flex flex-wrap gap-2">
+              <span
+                class="inline-flex items-center rounded-xl bg-limelight/10 border border-limelight/20 px-4 py-2 text-sm font-semibold text-limelight"
+              >
+                {dataset.label}
+              </span>
+              {
+                badges.map((badge) => (
+                  <span class="inline-flex items-center rounded-xl border border-white/15 bg-white/[0.05] px-4 py-2 text-sm font-medium text-white/70">
+                    <span class="text-[10px] uppercase tracking-wider text-white/40 mr-2">
+                      {badge.label}:
+                    </span>
+                    {formatValue(row[badge.key])}
+                  </span>
+                ))
+              }
+            </div>
+
+            <!-- Title & Review -->
+            <div class="space-y-4">
+              <h1
+                class="text-3xl md:text-4xl lg:text-5xl font-bold leading-tight"
+              >
+                {primaryValue}
+              </h1>
+              {
+                highlight && highlight !== "—" && (
+                  <p class="text-base md:text-lg text-white/60 leading-relaxed max-w-xl">
+                    {highlight}
+                  </p>
+                )
+              }
+            </div>
+
+            <!-- Stats Cards -->
+            <div class="flex flex-wrap gap-4">
+              <div
+                class="glass-panel-hover px-6 py-5 min-w-[160px] rounded-2xl"
+              >
+                <p
+                  class="text-[10px] uppercase tracking-widest text-white/40 mb-1.5 font-medium"
+                >
+                  Price
+                </p>
+                <p class="text-2xl md:text-3xl font-bold text-mist">
+                  {priceValue}
+                </p>
+              </div>
+              <div
+                class="glass-panel-hover px-6 py-5 min-w-[160px] rounded-2xl"
+              >
+                <p
+                  class="text-[10px] uppercase tracking-widest text-white/40 mb-1.5 font-medium"
+                >
+                  Category
+                </p>
+                <p class="text-2xl md:text-3xl font-bold text-limelight">
+                  {dataset.label}
+                </p>
+              </div>
+              {
+                badges[0] && (
+                  <div class="glass-panel-hover px-6 py-5 min-w-[120px] rounded-2xl">
+                    <p class="text-[10px] uppercase tracking-widest text-white/40 mb-1.5 font-medium">
+                      {badges[0].label}
+                    </p>
+                    <p class="text-2xl md:text-3xl font-bold text-cobalt">
+                      {formatValue(row[badges[0].key])}
+                    </p>
+                  </div>
+                )
+              }
+            </div>
+          </div>
+
+          <!-- Image/Icon Area -->
+          <div class="relative hidden lg:flex items-center justify-center">
+            <div
+              class="w-full aspect-square max-w-[280px] rounded-3xl bg-gradient-to-br from-graphite via-slate to-night border border-white/[0.06] flex items-center justify-center overflow-hidden"
+            >
+              <div
+                class="absolute inset-0 bg-gradient-to-br from-limelight/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"
+              >
+              </div>
+              <svg
+                class="w-28 h-28 text-white/15"
+                viewBox="0 0 24 24"
+                fill="currentColor"
+                aria-hidden="true"
+              >
+                <path
+                  d="M12 3a9 9 0 0 0-9 9v7c0 1.1.9 2 2 2h4v-8H5v-1a7 7 0 0 1 14 0v1h-4v8h4c1.1 0 2-.9 2-2v-7a9 9 0 0 0-9-9z"
+                ></path>
+              </svg>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Specifications Section -->
+      <section class="glass-panel p-6 md:p-8">
+        <div class="flex items-center gap-3 mb-6">
+          <div
+            class="w-10 h-10 rounded-xl bg-limelight/10 flex items-center justify-center"
+          >
+            <svg
+              class="w-5 h-5 text-limelight"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              aria-hidden="true"
+            >
+              <path
+                d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
+                stroke-linecap="round"
+                stroke-linejoin="round"></path>
+            </svg>
+          </div>
+          <div>
+            <h2 class="text-lg font-semibold text-mist">Full Specifications</h2>
+            <p class="text-xs text-white/40">
+              All available data for this item
+            </p>
+          </div>
+        </div>
+
+        <div class="grid gap-4 md:grid-cols-2">
+          {
+            specColumns.map((column) => (
+              <div class="flex items-start justify-between gap-4 p-4 rounded-xl bg-white/[0.02] border border-white/[0.04] hover:border-white/[0.08] hover:bg-white/[0.03] transition-colors duration-200">
+                <span class="text-sm text-white/40 font-medium">
+                  {column.label}
+                </span>
+                <span class="text-sm text-white/80 text-right font-medium max-w-[60%]">
+                  {column.key === priceKey
+                    ? formatPrice(row[column.key])
+                    : formatValue(row[column.key])}
+                </span>
+              </div>
+            ))
+          }
+        </div>
+      </section>
+
+      <!-- Quick Actions -->
+      <div class="flex flex-wrap gap-4">
+        <a
+          href={`/?tab=${dataset.key}`}
+          class="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-white/5 border border-white/10 text-white/70 hover:text-white hover:bg-white/10 hover:border-white/20 transition-all duration-200 text-sm font-medium"
+        >
+          <svg
+            class="w-4 h-4"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            aria-hidden="true"
+          >
+            <path
+              d="M19 12H5M12 19l-7-7 7-7"
+              stroke-linecap="round"
+              stroke-linejoin="round"></path>
+          </svg>
+          Back to {dataset.label}
+        </a>
+        <a
+          href="/"
+          class="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-limelight text-ink font-semibold hover:bg-limelight/90 transition-all duration-200 text-sm"
+        >
+          <svg
+            class="w-4 h-4"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            aria-hidden="true"
+          >
+            <path
+              d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"
+              stroke-linecap="round"
+              stroke-linejoin="round"></path>
+          </svg>
+          Go to Home
+        </a>
+      </div>
+    </div>
+  </main>
+</Layout>

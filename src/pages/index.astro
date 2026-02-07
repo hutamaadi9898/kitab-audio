@@ -1,0 +1,370 @@
+---
+import Layout from "../layouts/Layout.astro";
+import ProductGrid from "../components/ProductGrid";
+import DatasetCardGrid from "../components/DatasetCardGrid";
+import { getTwsProducts } from "../lib/tws";
+import { getDatasetMeta, getDatasetRows } from "../lib/datasets";
+
+export const prerender = false;
+
+const db = Astro.locals.runtime.env.TWS_DB;
+const datasets = await getDatasetMeta(db);
+const selectedKey = Astro.url.searchParams.get("tab") ?? datasets[0]?.key;
+const currentDataset =
+  datasets.find((dataset) => dataset.key === selectedKey) ?? datasets[0];
+const isTws = currentDataset?.key === "tws";
+
+const products = isTws
+  ? (await getTwsProducts(db)).sort((a, b) => {
+      const scoreA = a.overallSoundScore ?? -Infinity;
+      const scoreB = b.overallSoundScore ?? -Infinity;
+      return scoreB - scoreA;
+    })
+  : [];
+
+const rows =
+  !isTws && currentDataset ? await getDatasetRows(db, currentDataset) : [];
+
+const totalProducts = products.length;
+const ssTierCount = products.filter((p) => p.tier === "SS").length;
+const sTierCount = products.filter((p) => p.tier === "S").length;
+const averageScore = totalProducts
+  ? products.reduce((sum, p) => sum + (p.overallSoundScore ?? 0), 0) /
+    totalProducts
+  : 0;
+const averagePrice = totalProducts
+  ? products.reduce((sum, p) => sum + (p.priceIdr ?? 0), 0) / totalProducts
+  : 0;
+
+const totalItems = datasets.reduce((sum, dataset) => sum + dataset.rowCount, 0);
+---
+
+<Layout
+  title="Audio Gear Atlas · 2026"
+  description="A cross-category atlas of audio gear, from earbuds to DACs, curated into one living index."
+>
+  <main class="px-4 pb-12 md:px-8">
+    <div class="mx-auto max-w-7xl space-y-10">
+      <!-- Hero Section -->
+      <section class="pt-8 md:pt-12">
+        <div
+          class="glass-panel relative overflow-hidden px-6 py-10 md:px-10 md:py-14"
+        >
+          <div
+            class="absolute top-0 right-0 w-1/2 h-full bg-gradient-to-l from-limelight/[0.04] to-transparent pointer-events-none"
+          >
+          </div>
+
+          <div
+            class="relative z-10 grid gap-10 lg:grid-cols-[1.2fr_0.8fr] lg:gap-14"
+          >
+            <!-- Left: Headline -->
+            <div class="space-y-6">
+              <div class="inline-flex items-center gap-2 data-chip">
+                <span
+                  class="w-1.5 h-1.5 rounded-full bg-limelight animate-pulse"
+                ></span>
+                {
+                  isTws
+                    ? "TWS Atlas · 2026 Edition"
+                    : `${currentDataset?.label ?? "Audio"} · Audio Gear Atlas`
+                }
+              </div>
+
+              <h1 class="text-balance">
+                {
+                  isTws
+                    ? "The definitive map of true wireless earbuds."
+                    : `The definitive map of ${currentDataset?.label ?? "audio gear"}.`
+                }
+              </h1>
+
+              <p
+                class="text-lg text-white/50 max-w-xl leading-relaxed text-pretty"
+              >
+                {
+                  isTws
+                    ? "Every model scored across the audio spectrum—from bass punch to soundstage depth. Filter by tier, sort by what matters, and find your perfect match."
+                    : "Each category is mapped from the raw sheets. Jump between tabs to explore scores, notes, and specs in a consistent card layout."
+                }
+              </p>
+
+              <!-- Stats -->
+              <div class="flex flex-wrap gap-3 pt-2">
+                {
+                  isTws ? (
+                    <>
+                      <div class="data-chip">
+                        <span class="text-limelight font-semibold">
+                          {totalProducts}
+                        </span>{" "}
+                        models
+                      </div>
+                      <div class="data-chip">
+                        <span class="text-amber-300 font-semibold">
+                          {ssTierCount}
+                        </span>
+                        SS-tier
+                      </div>
+                      <div class="data-chip">
+                        <span class="text-slate-300 font-semibold">
+                          {sTierCount}
+                        </span>
+                        S-tier
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <div class="data-chip">
+                        <span class="text-limelight font-semibold">
+                          {datasets.length}
+                        </span>
+                        categories
+                      </div>
+                      <div class="data-chip">
+                        <span class="text-amber-300 font-semibold">
+                          {totalItems}
+                        </span>
+                        total entries
+                      </div>
+                      {currentDataset && (
+                        <div class="data-chip">
+                          <span class="text-slate-200 font-semibold">
+                            {currentDataset.rowCount}
+                          </span>
+                          in {currentDataset.label}
+                        </div>
+                      )}
+                    </>
+                  )
+                }
+              </div>
+            </div>
+
+            <!-- Right: Quick Stats Card -->
+            <div class="space-y-4">
+              <div class="glass-panel p-5 space-y-4">
+                <h2 class="text-xs uppercase tracking-[0.2em] text-white/40">
+                  Quick Stats
+                </h2>
+                {
+                  isTws ? (
+                    <div class="grid grid-cols-2 gap-4">
+                      <div>
+                        <p class="text-2xl font-semibold text-mist">
+                          {averageScore.toFixed(2)}
+                        </p>
+                        <p class="text-xs text-white/40 mt-1">Avg. Score</p>
+                      </div>
+                      <div>
+                        <p class="text-2xl font-semibold text-mist">
+                          Rp {Math.round(averagePrice / 1000000)}M
+                        </p>
+                        <p class="text-xs text-white/40 mt-1">Avg. Price</p>
+                      </div>
+                    </div>
+                  ) : (
+                    <div class="grid grid-cols-2 gap-4">
+                      <div>
+                        <p class="text-2xl font-semibold text-mist">
+                          {currentDataset?.rowCount ?? 0}
+                        </p>
+                        <p class="text-xs text-white/40 mt-1">Entries</p>
+                      </div>
+                      <div>
+                        <p class="text-2xl font-semibold text-mist">
+                          {currentDataset?.columns.length ?? 0}
+                        </p>
+                        <p class="text-xs text-white/40 mt-1">Fields</p>
+                      </div>
+                    </div>
+                  )
+                }
+              </div>
+
+              <div class="glass-panel p-5">
+                <h2
+                  class="text-xs uppercase tracking-[0.2em] text-white/40 mb-3"
+                >
+                  How to Read
+                </h2>
+                {
+                  isTws ? (
+                    <ul class="space-y-2 text-sm text-white/50">
+                      <li class="flex items-start gap-2">
+                        <span class="text-amber-300 mt-0.5">•</span>
+                        <span>
+                          <strong class="text-white/70">Tier</strong> = overall
+                          performance ranking
+                        </span>
+                      </li>
+                      <li class="flex items-start gap-2">
+                        <span class="text-limelight mt-0.5">•</span>
+                        <span>
+                          <strong class="text-white/70">VFM</strong> =
+                          value-for-money score
+                        </span>
+                      </li>
+                      <li class="flex items-start gap-2">
+                        <span class="text-cobalt mt-0.5">•</span>
+                        <span>
+                          <strong class="text-white/70">Scores</strong> = rated
+                          from 0 to 11
+                        </span>
+                      </li>
+                    </ul>
+                  ) : (
+                    <p class="text-sm text-white/50 leading-relaxed">
+                      Tabs follow the original spreadsheet sections. Use the
+                      cards to skim prices, ranks, and notes, then open the
+                      detail view for full specs.
+                    </p>
+                  )
+                }
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Dataset Section -->
+      <section class="space-y-6">
+        <div class="flex flex-wrap items-end justify-between gap-4">
+          <div>
+            <h2>{isTws ? "Atlas Cards" : "Atlas Cards"}</h2>
+            <p class="text-sm text-white/40 mt-1">
+              {
+                isTws
+                  ? "Click any card for full specifications"
+                  : "Pick a category to explore the cards for each sheet"
+              }
+            </p>
+          </div>
+          <p class="text-xs uppercase tracking-[0.2em] text-white/30">
+            Source: Normalized_Audio_Gear_Final_v2.xlsx
+          </p>
+        </div>
+
+        {
+          datasets.length === 0 ? (
+            <div class="glass-panel p-8 text-center text-white/50">
+              No datasets found. Check your D1 seed.
+            </div>
+          ) : (
+            <div class="space-y-6">
+              <!-- Category Tabs with Scroll Controls -->
+              <div class="relative group/tabs">
+                <!-- Fade gradient hints -->
+                <div class="absolute left-0 top-0 bottom-0 w-12 bg-gradient-to-r from-ink to-transparent z-10 pointer-events-none opacity-0 transition-opacity duration-300" id="tabs-fade-left"></div>
+                <div class="absolute right-0 top-0 bottom-0 w-12 bg-gradient-to-l from-ink to-transparent z-10 pointer-events-none" id="tabs-fade-right"></div>
+                
+                <!-- Scroll container -->
+                <div class="flex gap-2 overflow-x-auto pb-3 px-1 scroll-smooth" id="category-tabs">
+                  {datasets.map((dataset) => (
+                    <a
+                      href={`/?tab=${dataset.key}`}
+                      class:list={[
+                        "inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-medium transition-all duration-200 whitespace-nowrap flex-shrink-0",
+                        dataset.key === currentDataset?.key
+                          ? "bg-limelight text-ink shadow-md"
+                          : "bg-white/5 text-white/70 hover:bg-white/10 hover:text-white",
+                      ]}
+                    >
+                      <span>{dataset.label}</span>
+                      <span
+                        class:list={[
+                          "text-xs px-1.5 py-0.5 rounded-md font-semibold",
+                          dataset.key === currentDataset?.key
+                            ? "bg-ink/20 text-ink/80"
+                            : "bg-white/10 text-white/50",
+                        ]}
+                      >
+                        {dataset.rowCount}
+                      </span>
+                    </a>
+                  ))}
+                </div>
+
+                <!-- Scroll buttons -->
+                <button
+                  type="button"
+                  class="absolute left-0 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-ink/90 border border-white/10 flex items-center justify-center text-white/60 hover:text-white hover:bg-white/10 transition-all duration-200 opacity-0 pointer-events-none z-20"
+                  id="tabs-scroll-left"
+                  aria-label="Scroll tabs left"
+                >
+                  <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M15 18l-6-6 6-6" stroke-linecap="round" stroke-linejoin="round"></path>
+                  </svg>
+                </button>
+                <button
+                  type="button"
+                  class="absolute right-0 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-ink/90 border border-white/10 flex items-center justify-center text-white/60 hover:text-white hover:bg-white/10 transition-all duration-200 z-20"
+                  id="tabs-scroll-right"
+                  aria-label="Scroll tabs right"
+                >
+                  <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M9 18l6-6-6-6" stroke-linecap="round" stroke-linejoin="round"></path>
+                  </svg>
+                </button>
+              </div>
+
+              {isTws ? (
+                <ProductGrid products={products} client:load />
+              ) : currentDataset ? (
+                <DatasetCardGrid
+                  dataset={currentDataset}
+                  rows={rows}
+                  client:load
+                />
+              ) : null}
+            </div>
+          )
+        }
+      </section>
+    </div>
+  </main>
+</Layout>
+
+<script>
+  // Tab scrolling functionality
+  const tabsContainer = document.getElementById('category-tabs');
+  const scrollLeftBtn = document.getElementById('tabs-scroll-left');
+  const scrollRightBtn = document.getElementById('tabs-scroll-right');
+  const fadeLeft = document.getElementById('tabs-fade-left');
+  const fadeRight = document.getElementById('tabs-fade-right');
+
+  function updateScrollButtons() {
+    if (!tabsContainer) return;
+    
+    const { scrollLeft, scrollWidth, clientWidth } = tabsContainer;
+    const canScrollLeft = scrollLeft > 10;
+    const canScrollRight = scrollLeft < scrollWidth - clientWidth - 10;
+
+    if (scrollLeftBtn) {
+      scrollLeftBtn.style.opacity = canScrollLeft ? '1' : '0';
+      scrollLeftBtn.style.pointerEvents = canScrollLeft ? 'auto' : 'none';
+    }
+    if (scrollRightBtn) {
+      scrollRightBtn.style.opacity = canScrollRight ? '1' : '0';
+      scrollRightBtn.style.pointerEvents = canScrollRight ? 'auto' : 'none';
+    }
+    if (fadeLeft) {
+      fadeLeft.style.opacity = canScrollLeft ? '1' : '0';
+    }
+    if (fadeRight) {
+      fadeRight.style.opacity = canScrollRight ? '1' : '0';
+    }
+  }
+
+  tabsContainer?.addEventListener('scroll', updateScrollButtons, { passive: true });
+  window.addEventListener('resize', updateScrollButtons);
+  updateScrollButtons();
+
+  scrollLeftBtn?.addEventListener('click', () => {
+    tabsContainer?.scrollBy({ left: -200, behavior: 'smooth' });
+  });
+
+  scrollRightBtn?.addEventListener('click', () => {
+    tabsContainer?.scrollBy({ left: 200, behavior: 'smooth' });
+  });
+</script>

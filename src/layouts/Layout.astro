@@ -1,0 +1,177 @@
+---
+import "../styles/global.css";
+import Navigation from "../components/Navigation.astro";
+
+interface Props {
+	title?: string;
+	description?: string;
+}
+
+const {
+	title = "Audio Gear Atlas",
+	description = "A multi-category atlas of audio gear, tuned by data and listening scores.",
+} = Astro.props;
+
+const currentPath = Astro.url.pathname;
+---
+
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+		<link rel="icon" href="/favicon.ico" />
+		<meta name="generator" content={Astro.generator} />
+		<meta name="description" content={description} />
+		<meta name="theme-color" content="#0a0b0e" />
+
+		<!-- Open Graph / Social -->
+		<meta property="og:type" content="website" />
+		<meta property="og:title" content={title} />
+		<meta property="og:description" content={description} />
+		<meta name="twitter:card" content="summary_large_image" />
+		<meta name="twitter:title" content={title} />
+		<meta name="twitter:description" content={description} />
+
+		<title>{title}</title>
+	</head>
+	<body class="relative">
+		<!-- Scroll Progress Indicator -->
+		<div
+			class="scroll-progress"
+			id="scroll-progress"
+			style="width: 0%"
+			aria-hidden="true"
+		>
+		</div>
+
+		<!-- Ambient background -->
+		<div class="pointer-events-none fixed inset-0 -z-10 overflow-hidden">
+			<!-- Base gradient -->
+			<div class="absolute inset-0 bg-ink"></div>
+
+			<!-- Halo gradients -->
+			<div class="absolute inset-0 bg-halo opacity-100"></div>
+
+			<!-- Accent orbs -->
+			<div
+				class="absolute -top-40 -right-40 h-[600px] w-[600px] rounded-full bg-limelight/[0.07] blur-[150px]"
+			>
+			</div>
+			<div
+				class="absolute top-1/2 -left-40 h-[500px] w-[500px] rounded-full bg-cobalt/[0.05] blur-[150px]"
+			>
+			</div>
+			<div
+				class="absolute -bottom-40 right-1/4 h-[400px] w-[400px] rounded-full bg-ember/[0.04] blur-[150px]"
+			>
+			</div>
+
+			<!-- Noise texture overlay -->
+			<div
+				class="absolute inset-0 bg-grain opacity-[0.03] mix-blend-overlay"
+			>
+			</div>
+		</div>
+
+		<!-- Navigation -->
+		<Navigation currentPath={currentPath} />
+
+		<!-- Main content with padding for fixed header -->
+		<div class="pt-20" id="main-content">
+			<slot />
+		</div>
+
+		<!-- Scroll to Top Button -->
+		<div id="scroll-to-top-container"></div>
+
+		<!-- Footer -->
+		<footer class="border-t border-white/[0.05] mt-24">
+			<div class="mx-auto max-w-7xl px-6 py-10">
+				<div
+					class="flex flex-col md:flex-row items-center justify-between gap-6"
+				>
+					<div class="flex items-center gap-3">
+						<div
+							class="w-6 h-6 rounded-md bg-gradient-to-br from-limelight to-limelight-dim flex items-center justify-center"
+						>
+							<svg
+								class="w-3 h-3 text-ink"
+								viewBox="0 0 24 24"
+								fill="none"
+								stroke="currentColor"
+								stroke-width="3"
+								aria-hidden="true"
+							>
+								<path
+									d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"
+									stroke-linecap="round"
+									stroke-linejoin="round"></path>
+							</svg>
+						</div>
+						<span class="text-sm text-white/60"
+							>Audio Gear Atlas · 2026</span
+						>
+					</div>
+
+					<!-- Footer Links -->
+					<nav
+						class="flex items-center gap-6 text-sm"
+						aria-label="Footer navigation"
+					>
+						<a
+							href="/"
+							class="text-white/40 hover:text-white transition-colors"
+						>
+							Home
+						</a>
+						<span class="text-white/10">·</span>
+						<span class="text-white/30">Built with Astro</span>
+					</nav>
+
+					<p class="text-xs text-white/40">
+						Data sourced from Normalized_Audio_Gear_Final_v2.xlsx
+					</p>
+				</div>
+			</div>
+		</footer>
+
+		<!-- Scroll Progress Script -->
+		<script>
+			const progressBar = document.getElementById("scroll-progress");
+
+			function updateScrollProgress() {
+				const scrollTop = window.scrollY;
+				const docHeight =
+					document.documentElement.scrollHeight - window.innerHeight;
+				const scrollPercent =
+					docHeight > 0 ? (scrollTop / docHeight) * 100 : 0;
+
+				if (progressBar) {
+					progressBar.style.width = `${Math.min(scrollPercent, 100)}%`;
+				}
+			}
+
+			window.addEventListener("scroll", updateScrollProgress, {
+				passive: true,
+			});
+			updateScrollProgress();
+		</script>
+
+		<!-- Mount ScrollToTop React component -->
+		<script>
+			import { createElement } from "react";
+			import { createRoot } from "react-dom/client";
+			import ScrollToTop from "../components/ui/ScrollToTop";
+
+			const container = document.getElementById(
+				"scroll-to-top-container",
+			);
+			if (container) {
+				const root = createRoot(container);
+				root.render(createElement(ScrollToTop));
+			}
+		</script>
+	</body>
+</html>

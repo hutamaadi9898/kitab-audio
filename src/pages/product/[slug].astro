@@ -1,0 +1,494 @@
+---
+import Layout from "../../layouts/Layout.astro";
+import { getProductBySlug } from "../../lib/tws";
+import { ScoreGrid } from "../../components/ui/score-bar";
+
+export const prerender = false;
+
+const { slug } = Astro.params;
+const db = Astro.locals.runtime.env.TWS_DB;
+const product = slug ? await getProductBySlug(db, slug) : undefined;
+
+if (!product) {
+  return new Response("Not found", { status: 404 });
+}
+
+const toBooleanLabel = (value: unknown): string => {
+  if (typeof value === "boolean") return value ? "Yes" : "No";
+  if (typeof value === "string") {
+    const normalized = value.trim().toLowerCase();
+    if (["yes", "true", "y"].includes(normalized)) return "Yes";
+    if (["no", "false", "n"].includes(normalized)) return "No";
+  }
+  return value ? String(value) : "No";
+};
+
+const displayValue = (value: string): string =>
+  value && value !== "-" ? value : "—";
+
+const formatPrice = (value: number | null): string =>
+  value === null
+    ? "—"
+    : new Intl.NumberFormat("id-ID", { maximumFractionDigits: 0 }).format(
+        value,
+      );
+
+const formatScore = (value: number | null): string =>
+  value === null || !Number.isFinite(value) ? "—" : value.toFixed(2);
+
+// Get tier badge class
+const getTierClass = (tier: string): string => {
+  const t = tier?.toUpperCase?.() || "";
+  if (t === "SS" || t === "SSS")
+    return "border-amber-400/40 bg-amber-500/15 text-amber-300";
+  if (t === "S") return "border-slate-300/30 bg-slate-400/10 text-slate-300";
+  if (t.startsWith("A"))
+    return "border-orange-400/30 bg-orange-500/10 text-orange-300";
+  return "border-white/15 bg-white/5 text-white/60";
+};
+
+const scores = [
+  { label: "Bass", value: product.bassScore },
+  { label: "Low Mid", value: product.lowMidScore },
+  { label: "High Mid", value: product.highMidScore },
+  { label: "Treble", value: product.trebleScore },
+  { label: "Vocal", value: product.vocalScore },
+  { label: "Soundstage", value: product.soundstageScore },
+  { label: "Separation", value: product.separationScore },
+  { label: "Imaging", value: product.imagingScore },
+  { label: "Timbre", value: product.timbreScore },
+  { label: "Punch", value: product.punchScore },
+  { label: "Clarity", value: product.clarityScore },
+];
+
+const specs = [
+  { label: "Bluetooth Codec", value: displayValue(product.bluetoothCodec) },
+  { label: "Battery Life", value: displayValue(product.batteryLife) },
+  { label: "ANC Level", value: displayValue(product.ancLevel) },
+  { label: "Transparency", value: displayValue(product.transparencyMode) },
+  { label: "Equalizer", value: displayValue(product.equalizerType) },
+  { label: "Gaming Mode", value: displayValue(product.gamingMode) },
+  { label: "Sound Tuning", value: displayValue(product.soundTuning) },
+  { label: "IP Rating", value: displayValue(product.ipRating) },
+  { label: "Multipoint", value: toBooleanLabel(product.multipoint) },
+];
+
+const eartips = displayValue(product.recommendedEartips);
+---
+
+<Layout
+  title={`${product.name} · Audio Gear Atlas`}
+  description={product.reviewSummary}
+>
+  <main class="px-4 pb-12 md:px-8">
+    <div class="mx-auto max-w-6xl space-y-8">
+      <!-- Breadcrumb Navigation -->
+      <nav class="pt-4" aria-label="Breadcrumb">
+        <ol
+          class="flex items-center gap-2 text-sm"
+          itemscope
+          itemtype="https://schema.org/BreadcrumbList"
+        >
+          <li
+            itemprop="itemListElement"
+            itemscope
+            itemtype="https://schema.org/ListItem"
+          >
+            <a
+              href="/?tab=tws"
+              class="inline-flex items-center gap-1.5 text-white/40 hover:text-limelight transition-colors duration-200 group"
+              itemprop="item"
+            >
+              <svg
+                class="w-4 h-4 group-hover:-translate-x-0.5 transition-transform duration-200"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                aria-hidden="true"
+              >
+                <path
+                  d="M19 12H5M12 19l-7-7 7-7"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"></path>
+              </svg>
+              <span itemprop="name">Atlas</span>
+            </a>
+            <meta itemprop="position" content="1" />
+          </li>
+          <li class="text-white/20" aria-hidden="true">/</li>
+          <li
+            itemprop="itemListElement"
+            itemscope
+            itemtype="https://schema.org/ListItem"
+          >
+            <span class="text-white/60 font-medium" itemprop="name"
+              >{product.name}</span
+            >
+            <meta itemprop="position" content="2" />
+          </li>
+        </ol>
+      </nav>
+
+      <!-- Hero Section -->
+      <section class="glass-panel relative overflow-hidden p-6 md:p-10">
+        <!-- Background accents -->
+        <div
+          class="absolute top-0 right-0 w-1/2 h-full bg-gradient-to-l from-limelight/[0.03] to-transparent pointer-events-none"
+        >
+        </div>
+        <div
+          class="absolute -bottom-20 -left-20 w-60 h-60 bg-limelight/[0.03] rounded-full blur-[80px] pointer-events-none"
+        >
+        </div>
+
+        <div
+          class="relative z-10 grid gap-8 lg:grid-cols-[1.2fr_0.8fr] lg:gap-12"
+        >
+          <!-- Left: Product Info -->
+          <div class="space-y-6">
+            <!-- Badges -->
+            <div class="flex flex-wrap gap-2">
+              <span
+                class={`inline-flex items-center rounded-xl px-4 py-2 text-sm font-semibold ${getTierClass(product.tier)}`}
+              >
+                Tier {product.tier}
+              </span>
+              <span
+                class="inline-flex items-center rounded-xl border border-white/15 bg-white/[0.05] px-4 py-2 text-sm font-medium text-white/70"
+              >
+                <span
+                  class="text-[10px] uppercase tracking-wider text-white/40 mr-2"
+                  >VFM:</span
+                >
+                {product.pricePerformance}
+              </span>
+              {
+                product.microphonePerformance &&
+                  product.microphonePerformance !== "-" && (
+                    <span class="inline-flex items-center rounded-xl border border-cobalt/30 bg-cobalt/10 px-4 py-2 text-sm font-medium text-cobalt">
+                      <span class="text-[10px] uppercase tracking-wider text-cobalt/60 mr-2">
+                        Mic:
+                      </span>
+                      {product.microphonePerformance}
+                    </span>
+                  )
+              }
+            </div>
+
+            <!-- Title -->
+            <div class="space-y-3">
+              <h1 class="text-3xl md:text-4xl lg:text-5xl">{product.name}</h1>
+              <p class="text-base text-white/50 leading-relaxed max-w-xl">
+                {product.reviewSummary}
+              </p>
+              {
+                product.highlights && product.highlights !== "-" && (
+                  <div class="flex flex-wrap gap-2 pt-1">
+                    <span class="text-[10px] uppercase tracking-widest text-white/30">
+                      Highlights
+                    </span>
+                    <span class="text-xs font-medium text-white/80">
+                      {product.highlights}
+                    </span>
+                  </div>
+                )
+              }
+            </div>
+
+            <!-- Price and Overall Score -->
+            <div class="flex flex-wrap gap-4">
+              <div
+                class="glass-panel-hover px-6 py-5 min-w-[160px] rounded-2xl"
+              >
+                <p
+                  class="text-[10px] uppercase tracking-widest text-white/40 mb-1.5 font-medium"
+                >
+                  Price
+                </p>
+                <p class="text-2xl md:text-3xl font-bold text-mist">
+                  Rp {formatPrice(product.priceIdr)}
+                </p>
+              </div>
+              <div
+                class="glass-panel-hover px-6 py-5 min-w-[160px] rounded-2xl"
+              >
+                <p
+                  class="text-[10px] uppercase tracking-widest text-white/40 mb-1.5 font-medium"
+                >
+                  Overall Score
+                </p>
+                <p class="text-2xl md:text-3xl font-bold text-limelight">
+                  {formatScore(product.overallSoundScore)}
+                </p>
+              </div>
+              <div
+                class="glass-panel-hover px-6 py-5 min-w-[120px] rounded-2xl"
+              >
+                <p
+                  class="text-[10px] uppercase tracking-widest text-white/40 mb-1.5 font-medium"
+                >
+                  Tier
+                </p>
+                <p class="text-2xl md:text-3xl font-bold text-cobalt">
+                  {product.tier}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Right: Score Grid -->
+          <div class="glass-panel p-6">
+            <div class="flex items-center gap-3 mb-5">
+              <div
+                class="w-10 h-10 rounded-xl bg-limelight/10 flex items-center justify-center"
+              >
+                <svg
+                  class="w-5 h-5 text-limelight"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  aria-hidden="true"
+                >
+                  <path
+                    d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"></path>
+                </svg>
+              </div>
+              <div>
+                <h2 class="text-lg font-semibold text-mist">Audio Scores</h2>
+                <p class="text-xs text-white/40">Performance ratings</p>
+              </div>
+            </div>
+            <ScoreGrid scores={scores} columns={2} client:load />
+          </div>
+        </div>
+      </section>
+
+      <!-- Specs and Details -->
+      <section class="grid gap-6 lg:grid-cols-2">
+        <!-- Technical Specs -->
+        <div class="glass-panel p-6">
+          <div class="flex items-center gap-3 mb-5">
+            <div
+              class="w-10 h-10 rounded-xl bg-cobalt/10 flex items-center justify-center"
+            >
+              <svg
+                class="w-5 h-5 text-cobalt"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                aria-hidden="true"
+              >
+                <path
+                  d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"></path>
+              </svg>
+            </div>
+            <div>
+              <h3 class="text-lg font-semibold text-mist">Technical Specs</h3>
+              <p class="text-xs text-white/40">Hardware details</p>
+            </div>
+          </div>
+          <div class="space-y-3">
+            {
+              specs.map((spec) => (
+                <div class="flex items-start justify-between gap-4 p-3 rounded-xl bg-white/[0.02] border border-white/[0.04] hover:border-white/[0.08] hover:bg-white/[0.03] transition-colors duration-200">
+                  <span class="text-sm text-white/40 font-medium">
+                    {spec.label}
+                  </span>
+                  <span class="text-sm text-white/80 text-right font-medium max-w-[60%]">
+                    {spec.value}
+                  </span>
+                </div>
+              ))
+            }
+          </div>
+        </div>
+
+        <!-- Additional Info -->
+        <div class="space-y-6">
+          <!-- Sound Character -->
+          <div class="glass-panel p-6">
+            <div class="flex items-center gap-3 mb-4">
+              <div
+                class="w-10 h-10 rounded-xl bg-ember/10 flex items-center justify-center"
+              >
+                <svg
+                  class="w-5 h-5 text-ember"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  aria-hidden="true"
+                >
+                  <path
+                    d="M9 18V5l12-3v13M9 9l12-3"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"></path>
+                  <circle cx="6" cy="18" r="3"></circle>
+                  <circle cx="18" cy="15" r="3"></circle>
+                </svg>
+              </div>
+              <div>
+                <h3 class="text-lg font-semibold text-mist">Sound Character</h3>
+                <p class="text-xs text-white/40">Audio signature profile</p>
+              </div>
+            </div>
+            <p class="text-white/60 leading-relaxed">
+              <span class="text-white/80 font-medium"
+                >{displayValue(product.soundTuning)}</span
+              > tuning with <span class="text-white/80"
+                >{displayValue(product.bluetoothCodec)}</span
+              > codec support.
+              {
+                product.equalizerType && product.equalizerType !== "-" && (
+                  <span>
+                    Equipped with{" "}
+                    <span class="text-white/80">{product.equalizerType}</span>{" "}
+                    equalizer.
+                  </span>
+                )
+              }
+            </p>
+          </div>
+
+          <!-- Recommended Eartips -->
+          {
+            eartips !== "—" && (
+              <div class="glass-panel p-6">
+                <div class="flex items-center gap-3 mb-4">
+                  <div class="w-10 h-10 rounded-xl bg-violet-500/10 flex items-center justify-center">
+                    <svg
+                      class="w-5 h-5 text-violet-400"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2"
+                      aria-hidden="true"
+                    >
+                      <circle cx="12" cy="12" r="10" />
+                      <circle cx="12" cy="12" r="4" />
+                    </svg>
+                  </div>
+                  <div>
+                    <h3 class="text-lg font-semibold text-mist">
+                      Recommended Eartips
+                    </h3>
+                    <p class="text-xs text-white/40">For optimal fit</p>
+                  </div>
+                </div>
+                <p class="text-white/70">{eartips}</p>
+              </div>
+            )
+          }
+
+          <!-- Quick Features -->
+          <div class="glass-panel p-6">
+            <div class="flex items-center gap-3 mb-4">
+              <div
+                class="w-10 h-10 rounded-xl bg-limelight/10 flex items-center justify-center"
+              >
+                <svg
+                  class="w-5 h-5 text-limelight"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  aria-hidden="true"
+                >
+                  <path
+                    d="M22 11.08V12a10 10 0 11-5.93-9.14"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"></path>
+                  <path
+                    d="M22 4L12 14.01l-3-3"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"></path>
+                </svg>
+              </div>
+              <div>
+                <h3 class="text-lg font-semibold text-mist">Features</h3>
+                <p class="text-xs text-white/40">Key capabilities</p>
+              </div>
+            </div>
+            <div class="flex flex-wrap gap-2">
+              {
+                product.multipoint && (
+                  <span class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-limelight/10 border border-limelight/20 text-sm font-medium text-limelight">
+                    <span class="w-2 h-2 rounded-full bg-limelight" />
+                    Multipoint
+                  </span>
+                )
+              }
+              {
+                product.gamingMode &&
+                  product.gamingMode !== "-" &&
+                  product.gamingMode !== "false" && (
+                    <span class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-cobalt/10 border border-cobalt/20 text-sm font-medium text-cobalt">
+                      <span class="w-2 h-2 rounded-full bg-cobalt" />
+                      Gaming Mode
+                    </span>
+                  )
+              }
+              {
+                product.ipRating && product.ipRating !== "-" && (
+                  <span class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-ember/10 border border-ember/20 text-sm font-medium text-ember">
+                    <span class="w-2 h-2 rounded-full bg-ember" />
+                    {product.ipRating}
+                  </span>
+                )
+              }
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Quick Actions -->
+      <div class="flex flex-wrap gap-4">
+        <a
+          href="/?tab=tws"
+          class="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-white/5 border border-white/10 text-white/70 hover:text-white hover:bg-white/10 hover:border-white/20 transition-all duration-200 text-sm font-medium"
+        >
+          <svg
+            class="w-4 h-4"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            aria-hidden="true"
+          >
+            <path
+              d="M19 12H5M12 19l-7-7 7-7"
+              stroke-linecap="round"
+              stroke-linejoin="round"></path>
+          </svg>
+          Back to Atlas
+        </a>
+        <a
+          href="/"
+          class="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-limelight text-ink font-semibold hover:bg-limelight/90 transition-all duration-200 text-sm"
+        >
+          <svg
+            class="w-4 h-4"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            aria-hidden="true"
+          >
+            <path
+              d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"
+              stroke-linecap="round"
+              stroke-linejoin="round"></path>
+          </svg>
+          Go to Home
+        </a>
+      </div>
+    </div>
+  </main>
+</Layout>
